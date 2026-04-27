@@ -1,0 +1,5 @@
+{
+  "split_minutes": 30,
+  "auto_restart_delay_seconds": 5,
+  "save_interval_seconds": 60
+}

@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+build/
+*.spec
+
+# Local runtime state
+stats.json
+
+# Keep packaged executable in repo
+dist/*
+!dist/Capta.exe
