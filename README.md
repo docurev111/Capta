@@ -21,22 +21,17 @@ Capta is a lightweight Windows utility that automates 30-minute Medal recording 
   - Resizable with bottom-right grip
   - Exit button that fully terminates the process
 
-## Requirements
+## For End Users (No Python Needed)
 
-- Windows
-- Python 3.10+ (tested on 3.14)
+- Download `Capta.exe` from this repo (or Releases)
+- Run `Capta.exe`
+- Make sure Medal uses `Page Up` as its record/split hotkey
 
-Install dependencies:
+## Usage
 
-```bash
-python -m pip install pynput pyautogui
-```
-
-## Run from source
-
-```bash
-python main.py
-```
+1. Launch `Capta.exe`.
+2. Press `Page Up` once to start automation (`REC`).
+3. Press `Page Up` again to stop (`IDLE`).
 
 ## Configuration
 
@@ -54,7 +49,25 @@ Notes:
 - `auto_restart_delay_seconds` is clamped to a minimum of `5`
 - `save_interval_seconds` controls how often `stats.json` is written to disk
 
-## Build EXE
+## Developer Setup (Source + Build)
+
+Requirements:
+- Windows
+- Python 3.10+ (tested on 3.14)
+
+Install dependencies:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+Run from source:
+
+```bash
+python main.py
+```
+
+Build EXE:
 
 Install builder:
 
@@ -70,13 +83,6 @@ python -m PyInstaller --noconfirm --clean --onefile --windowed --name Capta main
 
 Output:
 - `dist/Capta.exe`
-
-## Usage
-
-1. Make sure Medal is using `Page Up` as its record/split hotkey.
-2. Launch `Capta.exe` (or `python main.py`).
-3. Press `Page Up` once to start automation.
-4. Press `Page Up` again to stop.
 
 ## Project Files
 
