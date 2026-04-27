@@ -1,10 +1,12 @@
 import json
 import os
+import shutil
 import threading
 import time
 import tkinter as tk
 from datetime import date
 from pathlib import Path
+import sys
 
 from pynput import keyboard
 from pynput.keyboard import Controller, Key
@@ -17,8 +19,10 @@ class CaptaApp:
     MIN_AUTO_RESTART_DELAY_SECONDS = 5
 
     def __init__(self) -> None:
-        self.stats_path = Path(__file__).with_name("stats.json")
-        self.config_path = Path(__file__).with_name("config.json")
+        self.app_data_dir = self.get_app_data_dir()
+        self.app_data_dir.mkdir(parents=True, exist_ok=True)
+        self.stats_path = self.app_data_dir / "stats.json"
+        self.config_path = self.app_data_dir / "config.json"
         self.keyboard_controller = Controller()
         self.state_lock = threading.Lock()
         self.stop_event = threading.Event()
@@ -36,6 +40,8 @@ class CaptaApp:
         self.resize_start_width = 0
         self.resize_start_height = 0
 
+        self.migrate_legacy_file("config.json", self.config_path)
+        self.migrate_legacy_file("stats.json", self.stats_path)
         self.load_config()
         self.load_stats()
 
@@ -154,6 +160,39 @@ class CaptaApp:
         new_width = max(220, self.resize_start_width + dx)
         new_height = max(70, self.resize_start_height + dy)
         self.root.geometry(f"{new_width}x{new_height}")
+
+    @staticmethod
+    def get_app_data_dir() -> Path:
+        appdata = os.getenv("APPDATA")
+        if appdata:
+            return Path(appdata) / "Capta"
+        return Path.home() / ".capta"
+
+    @staticmethod
+    def legacy_file_candidates(filename: str) -> list[Path]:
+        candidates: list[Path] = []
+        try:
+            candidates.append(Path(__file__).resolve().with_name(filename))
+        except OSError:
+            pass
+
+        if getattr(sys, "frozen", False):
+            candidates.append(Path(sys.executable).resolve().with_name(filename))
+
+        candidates.append(Path.cwd() / filename)
+        return candidates
+
+    def migrate_legacy_file(self, filename: str, destination: Path) -> None:
+        if destination.exists():
+            return
+
+        for source in self.legacy_file_candidates(filename):
+            if source.exists() and source != destination:
+                try:
+                    shutil.copy2(source, destination)
+                except OSError:
+                    pass
+                return
 
     def load_stats(self) -> None:
         today_str = date.today().isoformat()

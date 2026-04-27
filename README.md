@@ -35,7 +35,9 @@ Capta is a lightweight Windows utility that automates 30-minute Medal recording 
 
 ## Configuration
 
-Edit `config.json`:
+Edit `config.json` in:
+
+- `%APPDATA%\Capta\config.json`
 
 ```json
 {
@@ -47,7 +49,7 @@ Edit `config.json`:
 
 Notes:
 - `auto_restart_delay_seconds` is clamped to a minimum of `5`
-- `save_interval_seconds` controls how often `stats.json` is written to disk
+- `save_interval_seconds` controls how often `%APPDATA%\Capta\stats.json` is written to disk
 
 ## Developer Setup (Source + Build)
 
@@ -78,7 +80,7 @@ python -m pip install pyinstaller
 Build:
 
 ```bash
-python -m PyInstaller --noconfirm --clean --onefile --windowed --name Capta main.py
+python -m PyInstaller --noconfirm --clean --onefile --windowed --name Capta --icon logo.ico main.py
 ```
 
 Output:
@@ -87,6 +89,6 @@ Output:
 ## Project Files
 
 - `main.py` - app logic, hotkey listener, UI, timers
-- `config.json` - user-tunable runtime settings
-- `stats.json` - auto-generated daily session stats
+- `%APPDATA%\Capta\config.json` - user-tunable runtime settings
+- `%APPDATA%\Capta\stats.json` - auto-generated daily session stats
 - `dist/Capta.exe` - packaged executable
