@@ -19,6 +19,7 @@ Capta is a lightweight Windows utility that automates 30-minute Medal recording 
 - Minimal, dark, always-on-top Tkinter overlay:
   - Draggable
   - Resizable with bottom-right grip
+  - In-app settings panel (`⚙`) for timer values and hotkey
   - Exit button that fully terminates the process
 
 ## For End Users (No Python Needed)
@@ -43,13 +44,17 @@ Edit `config.json` in:
 {
   "split_minutes": 30,
   "auto_restart_delay_seconds": 5,
-  "save_interval_seconds": 60
+  "save_interval_seconds": 60,
+  "hotkey": "page_up"
 }
 ```
 
 Notes:
 - `auto_restart_delay_seconds` is clamped to a minimum of `5`
 - `save_interval_seconds` controls how often `%APPDATA%\Capta\stats.json` is written to disk
+- `hotkey` controls both the global toggle and simulated split key press
+  - Supported named keys: `page_up`, `page_down`, `home`, `end`, `insert`, `delete`, `space`, `tab`, `enter`, `esc`, `f1`-`f12`
+  - Single character hotkeys are also supported (example: `"r"`)
 
 ## Developer Setup (Source + Build)
 
