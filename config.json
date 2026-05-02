@@ -2,5 +2,6 @@
   "split_minutes": 30,
   "auto_restart_delay_seconds": 5,
   "save_interval_seconds": 60,
-  "hotkey": "page_up"
+  "hotkey": "page_up",
+  "segment_poll_seconds": 0.1
 }

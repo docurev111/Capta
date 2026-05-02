@@ -18,6 +18,7 @@ class CaptaApp:
     AUTO_RESTART_DELAY_SECONDS = 5
     MIN_AUTO_RESTART_DELAY_SECONDS = 5
     DEFAULT_HOTKEY = "page_up"
+    DEFAULT_SEGMENT_POLL_SECONDS = 0.1
 
     def __init__(self) -> None:
         self.app_data_dir = self.get_app_data_dir()
@@ -41,6 +42,7 @@ class CaptaApp:
         self.hotkey_special: Key | None = Key.page_up
         self.hotkey_char: str | None = None
         self.last_stats_save_monotonic = time.monotonic()
+        self.segment_poll_seconds = self.DEFAULT_SEGMENT_POLL_SECONDS
 
         self.drag_start_x = 0
         self.drag_start_y = 0
@@ -153,6 +155,9 @@ class CaptaApp:
         self.restart_delay_var = tk.StringVar(value=str(self.AUTO_RESTART_DELAY_SECONDS))
         self.save_interval_var = tk.StringVar(value=str(self.SAVE_INTERVAL_SECONDS))
         self.hotkey_var = tk.StringVar(value=self.hotkey_spec)
+        self.segment_poll_var = tk.StringVar(
+            value=str(self.segment_poll_seconds),
+        )
 
         self.make_settings_row(
             self.settings_inputs,
@@ -173,6 +178,11 @@ class CaptaApp:
             self.settings_inputs,
             "Hotkey",
             self.hotkey_var,
+        )
+        self.make_settings_row(
+            self.settings_inputs,
+            "Split check (s)",
+            self.segment_poll_var,
         )
 
         self.settings_status_label = tk.Label(
@@ -395,6 +405,14 @@ class CaptaApp:
         except (TypeError, ValueError):
             return max(minimum, default)
 
+    @staticmethod
+    def parse_segment_poll_seconds(value: object, default: float) -> float:
+        try:
+            parsed = float(str(value).strip())
+        except (TypeError, ValueError):
+            return default
+        return min(2.0, max(0.05, parsed))
+
     def configure_hotkey(self, raw_hotkey: object) -> None:
         hotkey = str(raw_hotkey).strip().lower().replace(" ", "_")
         special_keys: dict[str, Key] = {
@@ -451,6 +469,7 @@ class CaptaApp:
             "auto_restart_delay_seconds": self.AUTO_RESTART_DELAY_SECONDS,
             "save_interval_seconds": self.SAVE_INTERVAL_SECONDS,
             "hotkey": self.DEFAULT_HOTKEY,
+            "segment_poll_seconds": self.DEFAULT_SEGMENT_POLL_SECONDS,
         }
 
         data = defaults.copy()
@@ -477,17 +496,23 @@ class CaptaApp:
             defaults["save_interval_seconds"],
             1,
         )
+        segment_poll = self.parse_segment_poll_seconds(
+            data.get("segment_poll_seconds", defaults["segment_poll_seconds"]),
+            defaults["segment_poll_seconds"],
+        )
         self.configure_hotkey(data.get("hotkey", defaults["hotkey"]))
 
         self.SPLIT_SECONDS = split_minutes * 60
         self.AUTO_RESTART_DELAY_SECONDS = auto_restart_delay
         self.SAVE_INTERVAL_SECONDS = save_interval
+        self.segment_poll_seconds = segment_poll
 
         self.write_config(
             split_minutes=self.SPLIT_SECONDS // 60,
             auto_restart_delay_seconds=self.AUTO_RESTART_DELAY_SECONDS,
             save_interval_seconds=self.SAVE_INTERVAL_SECONDS,
             hotkey=self.hotkey_spec,
+            segment_poll_seconds=self.segment_poll_seconds,
         )
 
     def write_config(
@@ -496,16 +521,15 @@ class CaptaApp:
         auto_restart_delay_seconds: int,
         save_interval_seconds: int,
         hotkey: str,
+        segment_poll_seconds: float,
     ) -> None:
         normalized = {
-            "split_minutes": self.SPLIT_SECONDS // 60,
-            "auto_restart_delay_seconds": self.AUTO_RESTART_DELAY_SECONDS,
-            "save_interval_seconds": self.SAVE_INTERVAL_SECONDS,
+            "split_minutes": split_minutes,
+            "auto_restart_delay_seconds": auto_restart_delay_seconds,
+            "save_interval_seconds": save_interval_seconds,
             "hotkey": hotkey,
+            "segment_poll_seconds": segment_poll_seconds,
         }
-        normalized["split_minutes"] = split_minutes
-        normalized["auto_restart_delay_seconds"] = auto_restart_delay_seconds
-        normalized["save_interval_seconds"] = save_interval_seconds
         self.config_path.write_text(
             json.dumps(normalized, indent=2),
             encoding="utf-8",
@@ -538,6 +562,7 @@ class CaptaApp:
         self.restart_delay_var.set(str(self.AUTO_RESTART_DELAY_SECONDS))
         self.save_interval_var.set(str(self.SAVE_INTERVAL_SECONDS))
         self.hotkey_var.set(self.hotkey_spec)
+        self.segment_poll_var.set(str(self.segment_poll_seconds))
 
     def toggle_settings_panel(self) -> None:
         if self.settings_visible:
@@ -552,7 +577,7 @@ class CaptaApp:
         self.settings_frame.pack(fill="x")
         width = max(300, self.root.winfo_width())
         self.pending_resize_width = width
-        self.pending_resize_height = 250
+        self.pending_resize_height = 270
         self.apply_pending_resize()
 
     def hide_settings_panel(self) -> None:
@@ -571,6 +596,10 @@ class CaptaApp:
             self.MIN_AUTO_RESTART_DELAY_SECONDS,
         )
         save_interval = self.parse_int(self.save_interval_var.get(), 60, 1)
+        segment_poll = self.parse_segment_poll_seconds(
+            self.segment_poll_var.get(),
+            self.segment_poll_seconds,
+        )
         raw_hotkey = self.hotkey_var.get()
         valid_hotkey, normalized_hotkey = self.validate_hotkey(raw_hotkey)
 
@@ -585,12 +614,14 @@ class CaptaApp:
             self.SPLIT_SECONDS = split_minutes * 60
             self.AUTO_RESTART_DELAY_SECONDS = restart_delay
             self.SAVE_INTERVAL_SECONDS = save_interval
+            self.segment_poll_seconds = segment_poll
             self.configure_hotkey(normalized_hotkey)
             self.write_config(
                 split_minutes=self.SPLIT_SECONDS // 60,
                 auto_restart_delay_seconds=self.AUTO_RESTART_DELAY_SECONDS,
                 save_interval_seconds=self.SAVE_INTERVAL_SECONDS,
                 hotkey=self.hotkey_spec,
+                segment_poll_seconds=self.segment_poll_seconds,
             )
             self.last_stats_save_monotonic = time.monotonic()
 
@@ -686,7 +717,17 @@ class CaptaApp:
             self.last_today_update_monotonic = split_started_at
 
         self.press_hotkey_ignored()
-        time.sleep(self.AUTO_RESTART_DELAY_SECONDS)
+
+        remaining = float(self.AUTO_RESTART_DELAY_SECONDS)
+        while remaining > 0 and not self.stop_event.is_set():
+            chunk = min(0.25, remaining)
+            if self.stop_event.wait(chunk):
+                break
+            remaining -= chunk
+            with self.state_lock:
+                if not self.is_recording or not self.is_waiting_restart:
+                    self.restart_wait_started_monotonic = None
+                    return
 
         with self.state_lock:
             if not self.is_recording or not self.is_waiting_restart:
@@ -712,20 +753,21 @@ class CaptaApp:
     def segment_loop(self) -> None:
         while not self.stop_event.is_set():
             should_split = False
+            poll = self.segment_poll_seconds
             with self.state_lock:
                 if (
                     self.is_recording
                     and not self.is_waiting_restart
                     and self.segment_start_monotonic is not None
                 ):
-                    elapsed = time.monotonic() - self.segment_start_monotonic
-                    if elapsed >= self.SPLIT_SECONDS:
+                    deadline = self.segment_start_monotonic + self.SPLIT_SECONDS
+                    if time.monotonic() >= deadline:
                         should_split = True
 
             if should_split:
                 self.perform_split()
 
-            self.stop_event.wait(0.25)
+            self.stop_event.wait(poll)
 
     @staticmethod
     def format_hms(total_seconds: int) -> str:

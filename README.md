@@ -11,7 +11,8 @@ Capta is a lightweight Windows utility that automates 30-minute Medal recording 
   1. Sends `Page Up` to end the current clip
   2. Waits `auto_restart_delay_seconds` (minimum 5s)
   3. Sends `Page Up` again to start the next clip
-- Ignores its own simulated `Page Up` presses to prevent recursive toggles
+- Ignores its own simulated hotkey presses to prevent recursive toggles
+- While Medal saves between clips, status shows **`WAIT`** and **today’s recorded-time counter pauses** until the next clip starts (delay matches `auto_restart_delay_seconds`).
 - Persistent daily tracking in `stats.json`:
   - `total_seconds_today`
   - `last_session_date`
@@ -45,16 +46,24 @@ Edit `config.json` in:
   "split_minutes": 30,
   "auto_restart_delay_seconds": 5,
   "save_interval_seconds": 60,
-  "hotkey": "page_up"
+  "hotkey": "page_up",
+  "segment_poll_seconds": 0.1
 }
 ```
 
 Notes:
 - `auto_restart_delay_seconds` is clamped to a minimum of `5`
 - `save_interval_seconds` controls how often `%APPDATA%\Capta\stats.json` is written to disk
+- `segment_poll_seconds` is how often Capta checks for the split deadline (default `0.1`; lower reacts sooner at the 30‑minute mark; minimum `0.05`, maximum `2`)
 - `hotkey` controls both the global toggle and simulated split key press
   - Supported named keys: `page_up`, `page_down`, `home`, `end`, `insert`, `delete`, `space`, `tab`, `enter`, `esc`, `f1`-`f12`
   - Single character hotkeys are also supported (example: `"r"`)
+
+## Troubleshooting splits
+
+- Capta must stay **running** with status **REC** (or **WAIT** during an auto-split) for automation to work; closing the app stops timers and splits.
+- If Medal runs **as Administrator**, run `Capta.exe` **as Administrator** too, or Windows may block simulated key presses.
+- If splits never fire, open `%APPDATA%\Capta\config.json` and confirm `split_minutes`; try lowering `segment_poll_seconds` to `0.05` on very slow PCs.
 
 ## Developer Setup (Source + Build)
 
